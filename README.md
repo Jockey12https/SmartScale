@@ -2,8 +2,6 @@
 
 A modern, real-time smart scale system built with React, TypeScript, and Firebase. This application provides intelligent product detection, automatic weighing, and seamless billing for fruits and vegetables.
 
-![SmartScale]
-
 ## ✨ Features
 
 ### 🎯 Core Functionality

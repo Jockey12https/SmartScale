@@ -1,16 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import ProductDetection from './ProductDetection';
-import WeightPricing from './WeightPricing';
-import ConfirmationDialog from './ConfirmationDialog';
-import BillingSystem from './BillingSystem';
 import { Product, CartItem } from '@/lib/mockData';
 import { scaleService, ScaleData } from '@/lib/scaleService';
 import { seedDatabase, initializeScaleData } from '@/lib/seedDatabase';
 import { Scale, Zap, RefreshCw, Database, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
+
+// Lazy load components
+const ProductDetection = lazy(() => import('./ProductDetection'));
+const WeightPricing = lazy(() => import('./WeightPricing'));
+const ConfirmationDialog = lazy(() => import('./ConfirmationDialog'));
+const BillingSystem = lazy(() => import('./BillingSystem'));
 
 export default function ScaleDisplay() {
   const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
@@ -265,80 +267,34 @@ export default function ScaleDisplay() {
 
   const handleFetchLatestData = async () => {
     try {
-      // Fetch existing data from Smart Scale -> data nodes
-      const { database } = await import('@/lib/firebase');
-      const { ref, get } = await import('firebase/database');
-      
-      const dataRef = ref(database, 'SmartScale/data');
-      console.log('Fetching from path: SmartScale/data');
-      const snapshot = await get(dataRef);
-      const allData = snapshot.val();
-      
-      console.log('Raw Firebase data:', allData);
-      
-      if (allData) {
-        // Get all entries and sort by timestamp to find the latest
-        const entries = Object.entries(allData);
-        console.log('All entries from SmartScale/data:', entries);
+      // Use the existing scaleService instead of dynamic imports
+      const latestData = await scaleService.getLatestData();
+      if (latestData) {
+        setLatestData(latestData);
+        setCurrentWeight(latestData.weight);
         
-        // Sort by timestamp (most recent first)
-        const sortedEntries = entries.sort((a, b) => {
-          const timestampA = parseInt(a[1].timestamp || a[0]);
-          const timestampB = parseInt(b[1].timestamp || b[0]);
-          return timestampB - timestampA;
-        });
-        
-        const latestEntry = sortedEntries[0][1];
-        console.log('Latest entry by timestamp:', latestEntry);
-        console.log('Entry timestamp:', latestEntry.timestamp);
-        
-        setLatestData(latestEntry);
-        setCurrentWeight(latestEntry.weight);
-        
-        if (latestEntry.item && latestEntry.item !== "OniGarlicGarlicGarlicGarlicGarlic") {
+        if (latestData.item && latestData.item !== "OniGarlicGarlicGarlicGarlicGarlic") {
           const product: Product = {
-            id: latestEntry.item.toLowerCase().replace(/\s+/g, '-'),
-            name: latestEntry.item,
+            id: latestData.item.toLowerCase().replace(/\s+/g, '-'),
+            name: latestData.item,
             image: `https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=400&h=400&fit=crop`,
-            pricePerKg: latestEntry.price || 0,
+            pricePerKg: latestData.price || 0,
             category: 'fruit',
             confidence: 0.95
           };
           setCurrentProduct(product);
           
-          if (latestEntry.weight > 0) {
+          if (latestData.weight > 0) {
             setIsDetecting(false);
             setIsWeighing(false);
             setScaleStatus('ready');
             setShowConfirmation(true);
-            toast.success(`Fetched latest data: ${latestEntry.item} (${latestEntry.weight}kg)`);
+            toast.success(`Fetched latest data: ${latestData.item} (${latestData.weight}kg)`);
           }
         }
       } else {
-        console.log('No data found at SmartScale/data, trying alternative paths...');
-        
-        // Try alternative paths
-        const alternativePaths = [
-          'SmartScale'
-               ];
-        
-        for (const path of alternativePaths) {
-          try {
-            const altRef = ref(database, path);
-            const altSnapshot = await get(altRef);
-            const altData = altSnapshot.val();
-            
-            if (altData) {
-              console.log(`Found data at path: ${path}`, altData);
-              toast.info(`Found data at path: ${path}`);
-              return;
-            }
-          } catch (error) {
-            console.log(`No data at path: ${path}`);
-          }
-        }
-        
-        toast.info('No existing data found in any SmartScale paths');
+        console.log('No data found');
+        toast.info('No existing data found');
       }
     } catch (error) {
       console.error('Error fetching existing data:', error);
@@ -432,31 +388,37 @@ export default function ScaleDisplay() {
           {/* Product Detection */}
           <div className="space-y-2 sm:space-y-4">
             <h2 className="text-lg sm:text-xl font-semibold text-gray-800 text-center">Product Detection</h2>
-            <ProductDetection 
-              product={currentProduct} 
-              isDetecting={isDetecting} 
-            />
+            <Suspense fallback={<div className="flex items-center justify-center h-32">Loading...</div>}>
+              <ProductDetection 
+                product={currentProduct} 
+                isDetecting={isDetecting} 
+              />
+            </Suspense>
           </div>
 
           {/* Weight & Pricing */}
           <div className="space-y-2 sm:space-y-4">
             <h2 className="text-lg sm:text-xl font-semibold text-gray-800 text-center">Weight & Pricing</h2>
-            <WeightPricing 
-              product={currentProduct}
-              weight={currentWeight}
-              isWeighing={isWeighing}
-            />
+            <Suspense fallback={<div className="flex items-center justify-center h-32">Loading...</div>}>
+              <WeightPricing 
+                product={currentProduct}
+                weight={currentWeight}
+                isWeighing={isWeighing}
+              />
+            </Suspense>
           </div>
 
           {/* Billing System */}
           <div className="space-y-2 sm:space-y-4">
             <h2 className="text-lg sm:text-xl font-semibold text-gray-800 text-center">Billing System</h2>
-            <BillingSystem
-              cartItems={cartItems}
-              onRemoveItem={handleRemoveItem}
-              onCheckout={handleCheckout}
-              onClearCart={handleClearCart}
-            />
+            <Suspense fallback={<div className="flex items-center justify-center h-32">Loading...</div>}>
+              <BillingSystem
+                cartItems={cartItems}
+                onRemoveItem={handleRemoveItem}
+                onCheckout={handleCheckout}
+                onClearCart={handleClearCart}
+              />
+            </Suspense>
           </div>
         </div>
 
@@ -524,14 +486,16 @@ export default function ScaleDisplay() {
       </div>
 
       {/* Confirmation Dialog */}
-      <ConfirmationDialog
-        isOpen={showConfirmation}
-        onClose={() => setShowConfirmation(false)}
-        product={currentProduct}
-        weight={currentWeight}
-        onConfirm={handleConfirmProduct}
-        onRescan={handleRescan}
-      />
+      <Suspense fallback={<div>Loading...</div>}>
+        <ConfirmationDialog
+          isOpen={showConfirmation}
+          onClose={() => setShowConfirmation(false)}
+          product={currentProduct}
+          weight={currentWeight}
+          onConfirm={handleConfirmProduct}
+          onRescan={handleRescan}
+        />
+      </Suspense>
     </div>
   );
 }

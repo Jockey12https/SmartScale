@@ -183,6 +183,39 @@ class ScaleService {
       }
     });
   }
+
+  // Get latest data from SmartScale/data
+  async getLatestData(): Promise<ScaleData | null> {
+    if (!this.dataRef) {
+      console.warn('Database not available - cannot fetch latest data');
+      return null;
+    }
+    try {
+      const snapshot = await get(this.dataRef);
+      const allData = snapshot.val();
+      
+      if (allData) {
+        // Get all entries and sort by timestamp to find the latest
+        const entries = Object.entries(allData);
+        console.log('All entries from SmartScale/data:', entries);
+        
+        // Sort by timestamp (most recent first)
+        const sortedEntries = entries.sort((a, b) => {
+          const timestampA = parseInt(a[1].timestamp || a[0]);
+          const timestampB = parseInt(b[1].timestamp || b[0]);
+          return timestampB - timestampA;
+        });
+        
+        const latestEntry = sortedEntries[0][1] as ScaleData;
+        console.log('Latest entry by timestamp:', latestEntry);
+        return latestEntry;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error fetching latest data:', error);
+      return null;
+    }
+  }
 }
 
 export const scaleService = new ScaleService();

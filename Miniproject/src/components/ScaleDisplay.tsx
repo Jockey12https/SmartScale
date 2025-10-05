@@ -375,7 +375,7 @@ export default function ScaleDisplay() {
                   size="sm"
                 >
                   <Database className="w-4 h-4" />
-                  <span className="hidden sm:inline">Fetch Existing Data</span>
+                  <span className="hidden sm:inline">Fetch Latest Data</span>
                   <span className="sm:hidden">Fetch</span>
                 </Button>
               </div>

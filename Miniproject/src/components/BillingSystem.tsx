@@ -85,10 +85,10 @@ export default function BillingSystem({
             ${cartItems.map(item => `
               <div class="item">
                 <span>${item.product.name}</span>
-                <span>$${item.totalPrice.toFixed(2)}</span>
+                <span>₹${item.totalPrice.toFixed(2)}</span>
               </div>
               <div class="item" style="font-size: 10px; color: #666;">
-                <span>${item.weight}kg × $${item.product.pricePerKg}/kg</span>
+                <span>${item.weight}kg × ₹${item.product.pricePerKg}/kg</span>
                 <span></span>
               </div>
             `).join('')}
@@ -101,7 +101,7 @@ export default function BillingSystem({
             </div>
             <div class="item">
               <span>TOTAL:</span>
-              <span>$${totalAmount.toFixed(2)}</span>
+              <span>₹${totalAmount.toFixed(2)}</span>
             </div>
           </div>
           

@@ -251,7 +251,7 @@ export default function ScaleDisplay() {
         await scaleService.completeSession(currentSessionId);
       }
       
-      toast.success(`Checkout successful! Total: $${total.toFixed(2)}`);
+      toast.success(`Checkout successful! Total: ₹${total.toFixed(2)}`);
       setCartItems([]);
       setCurrentSessionId(null);
     } catch (error) {
@@ -437,7 +437,7 @@ export default function ScaleDisplay() {
                   <div className="text-xs sm:text-sm text-gray-600">Item</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-lg sm:text-2xl font-bold text-purple-600">${latestData.price || 0}</div>
+                  <div className="text-lg sm:text-2xl font-bold text-purple-600">₹{latestData.price || 0}</div>
                   <div className="text-xs sm:text-sm text-gray-600">Price</div>
                 </div>
                 <div className="text-center">

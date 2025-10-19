@@ -51,7 +51,11 @@ export default function ScaleDisplay() {
           const dataTimestamp = parseInt(data.timestamp);
           console.log('Data timestamp:', dataTimestamp, 'Detection start time:', detectionStartTime);
           
-          if (detectionStartTime && dataTimestamp > detectionStartTime) {
+          // Convert timestamp to milliseconds if it's in seconds (Unix timestamp format)
+          const normalizedDataTimestamp = dataTimestamp.toString().length <= 10 ? dataTimestamp * 1000 : dataTimestamp;
+          
+          // Check if timestamp is valid and data is newer than detection start
+          if (detectionStartTime && dataTimestamp > 0 && normalizedDataTimestamp > detectionStartTime) {
             console.log('✅ New data received after detection started');
             setLatestData(data);
             setCurrentWeight(data.weight);
@@ -59,12 +63,28 @@ export default function ScaleDisplay() {
             // Create a product object from the scale data
             if (data.item && data.item !== "OniGarlicGarlicGarlicGarlicGarlic") {
               console.log('Valid item detected:', data.item);
+              
+              // Determine category and image based on item
+              let category: 'fruit' | 'vegetable' = 'fruit';
+              let image = `https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=400&h=400&fit=crop`; // Default apple
+              
+              if (data.item.toLowerCase().includes('onion')) {
+                category = 'vegetable';
+                image = `https://vegipath.in/wp-content/uploads/2025/02/Main-onion1.jpg`; // Red Onion
+              } else if (data.item.toLowerCase().includes('garlic')) {
+                category = 'vegetable';
+                image = `https://images.unsplash.com/photo-1540148426945-6cf22a6b2383?w=400&h=400&fit=crop`; // Garlic
+              } else if (data.item.toLowerCase().includes('guava')) {
+                category = 'fruit';
+                image = `https://www.health.com/thmb/XlWTD8TZF5574DVtMEfD-XSj5Lg=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/Guava-15d1050d22034909bfca038ef1f8aaa2.jpg`; // Guava
+              }
+              
               const product: Product = {
                 id: data.item.toLowerCase().replace(/\s+/g, '-'),
                 name: data.item,
-                image: `https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=400&h=400&fit=crop`,
+                image: image,
                 pricePerKg: data.price || 0,
-                category: 'fruit', // Default category
+                category: category,
                 confidence: 0.95
               };
               setCurrentProduct(product);
@@ -274,12 +294,27 @@ export default function ScaleDisplay() {
         setCurrentWeight(latestData.weight);
         
         if (latestData.item && latestData.item !== "OniGarlicGarlicGarlicGarlicGarlic") {
+          // Determine category and image based on item
+          let category: 'fruit' | 'vegetable' = 'fruit';
+          let image = `https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=400&h=400&fit=crop`; // Default apple
+          
+          if (latestData.item.toLowerCase().includes('onion')) {
+            category = 'vegetable';
+            image = `https://vegipath.in/wp-content/uploads/2025/02/Main-onion1.jpg`; // Red Onion
+          } else if (latestData.item.toLowerCase().includes('garlic')) {
+            category = 'vegetable';
+            image = `https://images.unsplash.com/photo-1540148426945-6cf22a6b2383?w=400&h=400&fit=crop`; // Garlic
+          } else if (latestData.item.toLowerCase().includes('guava')) {
+            category = 'fruit';
+            image = `https://www.health.com/thmb/XlWTD8TZF5574DVtMEfD-XSj5Lg=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/Guava-15d1050d22034909bfca038ef1f8aaa2.jpg`; // Guava
+          }
+          
           const product: Product = {
             id: latestData.item.toLowerCase().replace(/\s+/g, '-'),
             name: latestData.item,
-            image: `https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=400&h=400&fit=crop`,
+            image: image,
             pricePerKg: latestData.price || 0,
-            category: 'fruit',
+            category: category,
             confidence: 0.95
           };
           setCurrentProduct(product);
@@ -442,7 +477,25 @@ export default function ScaleDisplay() {
                 </div>
                 <div className="text-center">
                   <div className="text-xs sm:text-sm font-mono text-gray-500">
-                    {new Date(parseInt(latestData.timestamp)).toLocaleString()}
+                    {latestData.timestamp && parseInt(latestData.timestamp) > 0 
+                      ? (() => {
+                          const timestamp = parseInt(latestData.timestamp);
+                          // Check if timestamp is in seconds (Unix timestamp format)
+                          // Unix timestamps are typically 10 digits, milliseconds are 13 digits
+                          const date = timestamp.toString().length <= 10 ? new Date(timestamp * 1000) : new Date(timestamp);
+                          // Use Indian date format (DD/MM/YYYY)
+                          return date.toLocaleString('en-GB', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                            hour12: true
+                          });
+                        })()
+                      : 'Invalid timestamp'
+                    }
                   </div>
                   <div className="text-xs sm:text-sm text-gray-600">Time</div>
                 </div>

@@ -35,12 +35,29 @@ class ScaleService {
       console.log('ScaleService received data:', data);
       if (data) {
         // Get the latest entry (most recent timestamp)
-        const timestamps = Object.keys(data).sort((a, b) => parseInt(b) - parseInt(a));
-        console.log('Available timestamps:', timestamps);
-        if (timestamps.length > 0) {
-          const latestEntry = data[timestamps[0]];
+        const entries = Object.entries(data);
+        const sortedEntries = entries.sort((a, b) => {
+          const entryA = a[1] as ScaleData;
+          const entryB = b[1] as ScaleData;
+          const timestampA = parseInt(entryA.timestamp || a[0]);
+          const timestampB = parseInt(entryB.timestamp || b[0]);
+          // Normalize timestamps to milliseconds for comparison (Unix timestamp format)
+          const normalizedA = timestampA.toString().length <= 10 ? timestampA * 1000 : timestampA;
+          const normalizedB = timestampB.toString().length <= 10 ? timestampB * 1000 : timestampB;
+          return normalizedB - normalizedA;
+        });
+        
+        console.log('Available entries sorted by timestamp:', sortedEntries);
+        if (sortedEntries.length > 0) {
+          const latestEntry = sortedEntries[0][1] as ScaleData;
           console.log('Latest entry from ScaleService:', latestEntry);
-          callback(latestEntry);
+          
+          // Validate timestamp before calling callback
+          if (latestEntry && latestEntry.timestamp && parseInt(latestEntry.timestamp) > 0) {
+            callback(latestEntry);
+          } else {
+            console.warn('Invalid timestamp in latest entry:', latestEntry);
+          }
         }
       } else {
         console.log('No data received from SmartScale/data');
@@ -48,23 +65,12 @@ class ScaleService {
     });
   }
 
-  // Update scale data
+  // Update scale data (read-only from SmartScale/data, no writing needed)
   async updateScaleData(data: Partial<ScaleData>) {
-    if (!this.dataRef) {
-      console.warn('Database not available - scale data not updated');
-      return;
-    }
-    try {
-      const timestamp = Date.now().toString();
-      const newDataRef = ref(database, `data/${timestamp}`);
-      await set(newDataRef, {
-        ...data,
-        timestamp: timestamp
-      });
-    } catch (error) {
-      console.error('Error updating scale data:', error);
-      throw error;
-    }
+    console.log('Scale data update requested:', data);
+    console.log('Note: SmartScale/data is read-only - data comes from external scale system');
+    // No writing needed - data is read-only from SmartScale/data
+    return;
   }
 
   // Get all products from database
@@ -201,9 +207,19 @@ class ScaleService {
         
         // Sort by timestamp (most recent first)
         const sortedEntries = entries.sort((a, b) => {
-          const timestampA = parseInt(a[1].timestamp || a[0]);
-          const timestampB = parseInt(b[1].timestamp || b[0]);
-          return timestampB - timestampA;
+          const entryA = a[1] as ScaleData;
+          const entryB = b[1] as ScaleData;
+          const timestampA = parseInt(entryA.timestamp || a[0]);
+          const timestampB = parseInt(entryB.timestamp || b[0]);
+          // Ensure we have valid timestamps before sorting
+          if (timestampA > 0 && timestampB > 0) {
+            // Normalize timestamps to milliseconds for comparison (Unix timestamp format)
+            const normalizedA = timestampA.toString().length <= 10 ? timestampA * 1000 : timestampA;
+            const normalizedB = timestampB.toString().length <= 10 ? timestampB * 1000 : timestampB;
+            return normalizedB - normalizedA;
+          }
+          // If timestamps are invalid, use the key as fallback
+          return parseInt(b[0]) - parseInt(a[0]);
         });
         
         const latestEntry = sortedEntries[0][1] as ScaleData;
